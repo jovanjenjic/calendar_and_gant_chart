@@ -31,24 +31,22 @@ const resolveColor = (state) => {
 }
 
 const findFirstFreeNumber = (arr) => {
-  const num = arr.reduce(function(max, current) {
-    // Ako je trenutni broj u objektu veći od maksimalnog, postavljamo ga kao maksimalni
+  const max = arr.reduce((max, current) => {
     if (current.depth > max) {
       return current.depth;
     }
-    // Inače, vraćamo trenutni maksimalni broj
     return max;
   }, arr[0].depth);
 
-  // Kreiraj objekat ili Set koji će sadržati brojeve iz niza objekata
+  // Kreiraj Set koji će sadržati brojeve iz niza objekata
   const nums = new Set(arr.map(obj => obj.depth));
   
   // Inicijalizuj prvi slobodan broj na 0
   let firstFree = 1;
   
   // Prolazi kroz sve brojeve od 0 do prosleđenog broja
-  for (let i = 1; i <= num + 1; i++) {
-    // Ako se broj ne nalazi u objektu ili Set-u, postavljamo ga kao prvi slobodan i izlazimo iz petlje
+  for (let i = 1; i <= max + 1; i++) {
+    // Ako se broj ne nalazi u Set-u, postavljamo ga kao prvi slobodan i izlazimo iz petlje
     if (!nums.has(i)) {
       firstFree = i;
       break;
@@ -59,20 +57,21 @@ const findFirstFreeNumber = (arr) => {
   return firstFree;
 } 
 
-const prepareMockData = (objects = [], startIntervalDays) => {
-  const sortedObjects = objects.sort((a, b) => {
-    return new Date(a.startTime) - new Date(b.startTime);
-  });
+const filterDatesByMonth = (array, month) => 
+	array.filter(value => {
+		// Kreiramo novi objekat Date za trenutni datum
+		const d = new Date(value?.startTime);
+		// Proveravamo da li se mesec u objektu poklapa sa ciljanim mesecom
+		return d.getMonth() === 2 - 1; // month - 1 jer getMonth() vraća indeks meseca (0-11)
+	});
 
-  const filteredDates = sortedObjects.filter(value => {
-    // Kreiramo novi objekat Date za trenutni datum
-    const d = new Date(value?.startTime);
-    // Proveravamo da li se mesec u objektu poklapa sa ciljanim mesecom
-    return d.getMonth() === 2 - 1; // month - 1 jer getMonth() vraća indeks meseca (0-11)
-  });
+
+const prepareMockData = (objects = [], startIntervalDays) => {
+//   console.log('UsaoSamOvde-001', sortedObjects);
 
   const result = {};
-  for (let obj of filteredDates) {
+
+  for (let obj of objects) {
     const startDate = dayjs.utc(obj?.startTime);
     const endDate = dayjs.utc(obj?.endTime);
 
@@ -84,74 +83,82 @@ const prepareMockData = (objects = [], startIntervalDays) => {
       days.push(startDate.add(i, 'day').format('YYYY-MM-DD'));
     }
 
-    for (let i=0; i<days.length; i++) {
+	// console.log('UsaoSamOvde-002', days);
+
+	const startIntervalKey = obj?.startTime.split('T')[0];
+    for (let i=0; i < days.length; i++) {
       const key = days[i];
       const prevKey = days[i-1];
-      const startIntervalKey = obj?.startTime.split('T')[0];
 
       const isNotStartInterval = key !== startIntervalKey;
+	  const isNextWeek = startIntervalDays.includes(key);
 
-			const isNextWeek = startIntervalDays.includes(key);
       if (!result?.[key]) {
         if (isNotStartInterval) {
-          result[key] = [{ 
+					const res = [{ 
 						id: obj?.id,
-						isStart: !isNotStartInterval,
+						isStart: !isNotStartInterval || isNextWeek,
 						depth: isNextWeek ? 1 : result[prevKey][result[prevKey].length - 1].depth,
 						time: dayjs(obj?.startTime).format('HH:mm'),
 						user: `${obj?.guser?.firstName} ${obj?.guser?.lastName}`,
 						color: resolveColor(obj?.state),
 						isNextWeek,
-						count: days.length,
+						length: isNextWeek ? (days.length - i > 7 ? 7 : days.length - i) : (days.length > 7 ? 7 : days.length),
 					}];
+          result[key] = res;
         } else {
-          result[key] = [{ 
+          const res = [{ 
 						id: obj?.id,
-						isStart: !isNotStartInterval,
+						isStart: !isNotStartInterval || isNextWeek,
 						depth: 1,
 						time: dayjs(obj?.startTime).format('HH:mm'),
 						user: `${obj?.guser?.firstName} ${obj?.guser?.lastName}`,
 						color: resolveColor(obj?.state),
 						isNextWeek,
-						count: days.length,
+						length: isNextWeek ? (days.length - i > 7 ? 7 : days.length - i) : (days.length > 7 ? 7 : days.length),
 					}];
+					result[key] = res;
         }
       } else {
 
         if (isNotStartInterval) {
           const isNextWeek = startIntervalDays.includes(key);
-          result[key].push({ 
+          const res = { 
 						id: obj?.id,
-						isStart: !isNotStartInterval,
+						isStart: !isNotStartInterval || isNextWeek,
 						depth: isNextWeek ? findFirstFreeNumber(result[key]) : result[prevKey][result[prevKey].length - 1].depth,
 						time: dayjs(obj?.startTime).format('HH:mm'),
 						user: `${obj?.guser?.firstName} ${obj?.guser?.lastName}`,
 						color: resolveColor(obj?.state),
 						isNextWeek,
-						count: days.length,
-					});
+						length: isNextWeek ? (days.length - i > 7 ? 7 : days.length - i) : (days.length > 7 ? 7 : days.length),
+					};
+					result[key].push(res);
         } else {
-          result[key].push({
+					const res = {
 						id: obj?.id,
-						isStart: !isNotStartInterval, 
+						isStart: !isNotStartInterval || isNextWeek, 
 						depth: findFirstFreeNumber(result[key]),
 						time: dayjs(obj?.startTime).format('HH:mm'),
 						user: `${obj?.guser?.firstName} ${obj?.guser?.lastName}`,
 						color: resolveColor(obj?.state),
 						isNextWeek,
-						count: days.length,
-					});
+						length: isNextWeek ? (days.length - i > 7 ? 7 : days.length - i) : (days.length > 7 ? 7 : days.length),
+					};
+          result[key].push(res);
         }
       }
     } 
   }
+
+	console.log('resultresult', result)
   return result;
 }
 
 const Calendar = () => {
 	const [currentMonth, setCurrentMonth] = useState(now);
 	const [arrayOfDays, setArrayOfDays] = useState([]);
-  const [startIntervalDays, setStartIntervalDays] = useState();
+	const [startIntervalDays, setStartIntervalDays] = useState();
 
 	const nextMonth = () => {
 		const plus = currentMonth.add(1, "month");
@@ -194,10 +201,10 @@ const Calendar = () => {
 				</div>
 			);
 		}
-		return <div className="days row">{days}</div>;
+		return <div className="days">{days}</div>;
 	};
 
-  const formateDateObject = date => {
+	const formateDateObject = date => {
 		const clonedObject = { ...date.toObject() };
 
 		const formatedObject = {
@@ -206,7 +213,7 @@ const Calendar = () => {
 			year: clonedObject.years,
 			isCurrentMonth: clonedObject.months === currentMonth.month(),
 			isCurrentDay: date.isToday(),
-      utc: dayjs(date).format('YYYY-MM-DD')
+			utc: dayjs(date).format('YYYY-MM-DD')
 		};
 
 		return formatedObject;
@@ -218,7 +225,7 @@ const Calendar = () => {
 
 		let allDates = [];
 		let weekDates = [];
-    let startIntervalDaysUtc = [];
+    	let startIntervalDaysUtc = [];
 
 		let weekCounter = 1;
 
@@ -228,8 +235,8 @@ const Calendar = () => {
 			weekDates.push(formated);
       
 			if (weekCounter === 7) {
-        allDates.push({ dates: weekDates });
-        startIntervalDaysUtc.push(weekDates[0]?.utc);
+				allDates.push({ dates: weekDates });
+				startIntervalDaysUtc.push(weekDates[0]?.utc);
 				weekDates = [];
 				weekCounter = 0;
 			}
@@ -238,7 +245,7 @@ const Calendar = () => {
 			currentDate = currentDate.add(1, "day");
 		}
 
-    setStartIntervalDays(startIntervalDaysUtc);
+    	setStartIntervalDays(startIntervalDaysUtc);
 		setArrayOfDays(allDates);
 	};
 
@@ -248,37 +255,28 @@ const Calendar = () => {
 
 	const renderCells = () => {
 		const rows = [];
-		let days = [];
-
-    const preparedDatas = prepareMockData(mockData, startIntervalDays);
+		const filteredDates = filterDatesByMonth(mockData, currentMonth).sort((a, b) => {
+			return new Date(a.startTime) - new Date(b.startTime);
+		  });
+    	const preparedDatas = prepareMockData(filteredDates, startIntervalDays);
 		arrayOfDays.forEach((week, index) => {
-      week.dates.forEach((d, i) => {
-				days.push(
-					<div
-						className={`col cell ${
-							!d.isCurrentMonth ? "disabled" : d.isCurrentDay ? "selected" : ""
-						}`}
-						key={i}
-					>
-						<span className="number">{d.day}</span>
-            <div className="grid-container">
-              {(preparedDatas[d.utc] || []).map(v => {
-                return (
-									<p className="grid-cell" style={{ backgroundColor: v?.color, gridRow: `${v?.depth} / ${v?.depth + 1}` }}>
-										{v?.isStart || v?.isNextWeek ? `${v?.time} BOO - BOO ${v?.user}` : ''}
-									</p>
-								);
-              })}
-            </div>
-					</div>
-				);
-			});
 			rows.push(
 				<div className="row" key={index}>
-					{days}
+					{week.dates.map((d, i) => {
+						return <>
+							<p className="number" style={{gridRow: 1,}}>{d?.day}</p>
+							{(preparedDatas[d.utc] || []).map((v) => {
+								return (
+									v?.isStart && 
+									<p className="grid-cell" style={{ gridRow: `${v?.depth + 1}`, gridColumn: `${i + 1} / ${i + v?.length + 1}`, backgroundColor: v?.color }}>
+										{`${v?.time} BOO - BOO ${v?.user}`}
+									</p>
+								);
+							})
+						}</>;
+					})}
 				</div>
 			);
-			days = [];
 		});
 
 		return <div className="body">{rows}</div>;

@@ -77,10 +77,14 @@ main {
 .row {
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+
+  display: grid;
   width: 100%;
+  min-height: 200px;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(32px, auto);
+  grid-gap: 2px;
+
 }
 
 .row-middle {
@@ -153,6 +157,7 @@ main {
   font-size: 70%;
   padding: .75em 0;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
 }
 
 .calendar .body .cell {
@@ -189,8 +194,6 @@ main {
 }
 
 .calendar .body .cell .number {
-  display: flex;
-  justify-content: center;
   padding-top: 10px;
 
   font-size: 82.5%;
@@ -203,25 +206,9 @@ main {
   pointer-events: none;
 }
 
-.calendar .body .col {
-  flex-grow: 0;
-  flex-basis: calc(100%/7);
-  width: calc(100%/7);
-  /* display: grid;
-  grid-template-columns: repeat(7, 1fr); */
-  /* grid-auto-rows: 32px; */
-}
 
-.calendar .body .cell .grid-container {
-  display: grid;
-  grid-auto-rows: 36px;
-  grid-auto-flow: row;
-
-
-}
-
-.calendar .body .cell .grid-container .grid-cell {
-  height: 32px;
+.calendar .row .grid-cell {
+  min-height: 32px;
   margin: 0 0 2px 0;
   padding-left: 8px;
   color: #2A313C;
@@ -235,5 +222,10 @@ main {
   display: flex;
   align-items: center;
 
-  white-space: nowrap;
+  border-radius: 4px;
+}
+
+.calendar .row .number {
+  display: flex;
+  justify-content: center;
 }
